@@ -103,7 +103,7 @@ const getBangumiOnAirTimes = (bangumi, timeNow) => {
 const getEventsFromData = (bangumiData, siteMeta, timeNow) => {
   const events = [];
   for (const item of bangumiData) {
-    const titlePrefix = item.isNew ? '本季新番' : '上季旧番';
+    // const titlePrefix = item.isNew ? '本季新番' : '上季旧番';
     const siteList = getBangumiSiteList(item, siteMeta);
     const onAirTimes = getBangumiOnAirTimes(item, timeNow);
     for (const onAirTime of onAirTimes) {
@@ -113,7 +113,7 @@ const getEventsFromData = (bangumiData, siteMeta, timeNow) => {
           minutes: EP_LENGTH,
         },
         description: getBangumiDescription(siteList),
-        title: `${titlePrefix}：《${getBangumiName(item)}》`,
+        title: getBangumiName(item),
         url: getBangumiUrl(siteList),
       };
       events.push(newEvent);
