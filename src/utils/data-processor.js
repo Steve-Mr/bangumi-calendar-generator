@@ -1,5 +1,6 @@
 const moment = require('moment');
 const DEFAULT = require("../default.json");
+const inquirer = require('inquirer');
 
 const MAX_SEASON_EP_COUNT = DEFAULT.maxSeasonEpCount; // 默认每季集数.
 const MAX_OLD_BANGUMI_MONTH = DEFAULT.maxOldBangumiMonth; // 未结束老番最大月数
@@ -100,12 +101,63 @@ const getBangumiOnAirTimes = (bangumi, timeNow) => {
   return resultList;
 };
 
-const getEventsFromData = (bangumiData, siteMeta, timeNow) => {
+// 递归调用直到用户输入的剩余集数值符合条件
+function promptEpisodes(bangumi) {
+  return inquirer.prompt([{
+    type: 'number',
+    name: 'episodes',
+    message: `${bangumi.title} 有多少集未播出`,
+    validate: (value) => {
+      if (Number.isNaN(value) || value < 1 || !Number.isInteger(value)) {
+        return '请输入一个大于等于 1 的正整数。';
+      }
+      return true;
+    }
+  }])
+    .then((answers) => {
+      return answers.episodes;
+    })
+    .catch((error) => {
+      console.log(error);
+      return promptEpisodes();
+    });
+}
+
+// 使用用户输入的剩余集数计算时间表
+const getOnAirTimesFromUser = async (bangumi, timeNow) => {
+  const now = timeNow.clone();
+  const resultList = [];
+  let beginTime = moment(bangumi.begin);
+  let seasonEpCount = await promptEpisodes(bangumi);
+
+  if (!bangumi.isNew) {
+    // 老番重新计算起始时间
+    beginTime = getInitialDateOfOldBangumi(beginTime, now);
+  }
+  // 新番和老番使用同一时间表计算方法
+  for (let i = 0; i < seasonEpCount; i++) {
+    if (beginTime.isAfter(now)) {
+      resultList.push(beginTime.format('YYYY-M-D-H-m').split('-').map(Number));
+    }
+    beginTime.add(1, 'w');
+  }
+  return resultList;
+};
+
+const getEventsFromData = async (bangumiData, siteMeta, timeNow) => {
   const events = [];
+  // 询问用户是否要手动输入番剧的集数
+  const boolManually = await inquirer.prompt([{
+    type: 'confirm',
+    name: 'state',
+    message: '是否手动输入番剧集数：',
+    default: false
+  }])
   for (const item of bangumiData) {
     // const titlePrefix = item.isNew ? '本季新番' : '上季旧番';
     const siteList = getBangumiSiteList(item, siteMeta);
-    const onAirTimes = getBangumiOnAirTimes(item, timeNow);
+    // 根据用户不同选择调用不同方法
+    const onAirTimes = boolManually.state? await getOnAirTimesFromUser(item, timeNow) : getBangumiOnAirTimes(item, timeNow);
     for (const onAirTime of onAirTimes) {
       const newEvent = {
         start: onAirTime,

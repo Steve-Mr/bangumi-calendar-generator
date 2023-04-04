@@ -61,7 +61,7 @@ const defaultLikeList = LIKE.likeList;
   }
   const data = getNowOnAirBangumiData(timeNow, likeList);
   const sites = bangumiData.siteMeta;
-  const events = getEventsFromData(data, sites, timeNow);
+  const events = await getEventsFromData(data, sites, timeNow);
   ics.createEvents(events, (error, value) => {
     if (error) {
       console.log(error);
