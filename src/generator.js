@@ -13,6 +13,7 @@ const LIKE = require('./like.json');
 const { writeFileSync } = fs;
 
 const resultFileName = 'bangumi.ics';
+const bangumiListFileName = 'bangumi_list.json';
 const resultPath = path.join(__dirname, '../result');
 const likeFilePath = path.join(__dirname, 'like.json');
 const defaultLikeList = LIKE.likeList;
@@ -20,6 +21,22 @@ const defaultLikeList = LIKE.likeList;
 (async () => {
   const timeNow = moment();
   let likeList = null;
+  if (argv.list) {
+    const data = getNowOnAirBangumiData(timeNow);
+    const bangumiList = data
+      .map((item) => ({
+        [getBangumiName(item)]: item.title,
+      }))
+      .reduce((p, n) => ({ ...p, ...n }));
+    if (!fs.existsSync(resultPath)) {
+      fs.mkdirSync(resultPath);
+    }
+    writeFileSync(
+      path.join(resultPath, bangumiListFileName),
+      JSON.stringify(bangumiList, null, 2)
+    );
+    return;
+  }
   if (argv.show) {
     const data = getNowOnAirBangumiData(timeNow);
     // console.log(
@@ -53,11 +70,11 @@ const defaultLikeList = LIKE.likeList;
     );
     writeFileSync(likeFilePath, JSON.stringify({ likeList }, null, 2));
   }
-  if (argv.like) {
-    likeList =
-      typeof argv.like.length === 'number' && argv.like.length > 0
-        ? argv.like
-        : defaultLikeList;
+  if (argv.like && argv.like.length > 0) {
+    likeList = argv.like;
+    writeFileSync(likeFilePath, JSON.stringify({ likeList }, null, 2));
+  } else {
+    likeList = defaultLikeList;
   }
   const data = getNowOnAirBangumiData(timeNow, likeList);
   const sites = bangumiData.siteMeta;

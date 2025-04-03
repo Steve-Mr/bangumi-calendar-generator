@@ -1,0 +1,35 @@
+name: shortcut trigger
+
+on:
+  repository_dispatch:
+    types: [shortcut_trigger]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [16.x]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          token: ${{ secrets.ACCESS_TOKEN }}
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2-beta
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: update like.json
+        run: |
+          echo '${{ toJSON(github.event.client_payload.like_list) }}'
+          npm run like '${{ toJSON(github.event.client_payload.like_list) }}'
+        env:
+          CI: true
+      - name: Commit files
+        run: |
+          git add src/like.json
+          git config --local user.email "543833065@qq.com"
+          git config --local user.name "clverpanda"
+          git commit -m "Update Bangumi" -a
+          git push
